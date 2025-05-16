@@ -1,90 +1,133 @@
-import React from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import {
-  WagmiProvider,
-  createConfig,
-  useAccount,
-  useConnect,
-  useBalance,
-  http,
-} from "wagmi";
+"use client"; // Add this at the top for Next.js or frameworks that use Server Components
+import React, { useState } from "react";
+import { useUser } from "@civic/auth-web3/react";
 import { userHasWallet } from "@civic/auth-web3";
-import { embeddedWallet } from "@civic/auth-web3/wagmi";
-import { CivicAuthProvider, UserButton, useUser } from "@civic/auth-web3/react";
-import { mainnet, sepolia } from "wagmi/chains";
+import { CivicAuthProvider, UserButton } from "@civic/auth-web3/react";
 
-const wagmiConfig = createConfig({
-  chains: [mainnet, sepolia],
-  transports: {
-    [mainnet.id]: http(),
-    [sepolia.id]: http(),
-  },
-  connectors: [embeddedWallet()],
-});
-
-// Wagmi requires react-query
-const queryClient = new QueryClient();
-
-// Wrap the content with the necessary providers to give access to hooks: react-query, wagmi & civic auth provider
-// initialChain is passed into <CivicAuthProvider /> to indicate the first chain you want to use.
-// The chain can be switched later using wagmi's useSwitchChain() hook.
-const App = () => {
-  return (
-    <QueryClientProvider client={queryClient}>
-      <WagmiProvider config={wagmiConfig}>
-        <CivicAuthProvider
-          clientId="c5ccb965-b480-4b9a-a2c4-95755f1e7b07"
-          initialChain={mainnet}
-        >
-          <AppContent />
-        </CivicAuthProvider>
-      </WagmiProvider>
-    </QueryClientProvider>
-  );
-};
-
-// Separate component for the app content that needs access to hooks
-const AppContent = () => {
-  // Add the civic hooks
+const ProfilePage = () => {
+  const { user } = useUser();
+  const [copied, setCopied] = useState(false);
   const userContext = useUser();
-  useAutoConnect();
 
-  // Add the wagmi hooks
-  const { isConnected, address } = useAccount();
-  const balance = useBalance({ address });
+  // Handle wallet creation on component mount
+  React.useEffect(() => {
+    const initializeWallet = async () => {
+      if (userContext.user && !userHasWallet(userContext)) {
+        try {
+          await userContext.createWallet();
+        } catch (error) {
+          console.error("Wallet creation failed:", error);
+        }
+      }
+    };
+    initializeWallet();
+  });
+
+  const walletAddress = userContext.solana.address;
+
+  const copyToClipboard = () => {
+    if (!walletAddress) return;
+
+    navigator.clipboard
+      .writeText(walletAddress)
+      .then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      })
+      .catch((err) => console.error("Failed to copy:", err));
+  };
 
   return (
-    <>
+    <div className="max-w-md mx-auto p-6 bg-white rounded-lg shadow-md">
+      <h2 className="text-xl font-semibold mb-4">Your Profile</h2>
       <UserButton />
-      {userContext.user && (
+      <div className="space-y-4">
+        {/* Name Input */}
         <div>
-          {!userHasWallet(userContext) && (
-            <p>
-              <button onClick={createWallet}>Create Wallet</button>
-            </p>
-          )}
-          {userHasWallet(userContext) && (
-            <>
-              <p>Wallet address: {userContext.eth.address}</p>
-              <p>
-                Balance:{" "}
-                {balance?.data
-                  ? `${(
-                      BigInt(balance.data.value) / BigInt(1e18)
-                    ).toString()} ${balance.data.symbol}`
-                  : "Loading..."}
-              </p>
-              {isConnected ? (
-                <p>Wallet is connected</p>
-              ) : (
-                <button onClick={connectExistingWallet}>Connect Wallet</button>
-              )}
-            </>
-          )}
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Name
+          </label>
+          <input
+            type="text"
+            value={user.name || "Not available"}
+            disabled
+            className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-700"
+          />
         </div>
-      )}
-    </>
+
+        {/* Email Input */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Email
+          </label>
+          <input
+            type="email"
+            value={user.email || "Not provided"}
+            disabled
+            className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-700"
+          />
+        </div>
+
+        {/* Wallet Address */}
+        {walletAddress && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Wallet Address
+            </label>
+            <div className="flex rounded-md shadow-sm">
+              <input
+                type="text"
+                value={walletAddress}
+                readOnly
+                className="flex-1 min-w-0 block w-full px-3 py-2 rounded-none rounded-l-md border border-gray-300 bg-gray-50 text-gray-500 text-sm truncate"
+                onClick={(e) => e.target.select()}
+              />
+              <button
+                onClick={copyToClipboard}
+                className="inline-flex items-center px-3 py-2 border border-l-0 border-gray-300 rounded-r-md bg-gray-50 text-sm font-medium text-blue-600 hover:bg-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              >
+                {copied ? (
+                  <span className="flex items-center">
+                    <svg
+                      className="h-4 w-4 mr-1 text-green-500"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M5 13l4 4L19 7"
+                      />
+                    </svg>
+                    Copied!
+                  </span>
+                ) : (
+                  <span className="flex items-center">
+                    <svg
+                      className="h-4 w-4 mr-1"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"
+                      />
+                    </svg>
+                    Copy
+                  </span>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
   );
 };
 
-export default App;
+export default ProfilePage;

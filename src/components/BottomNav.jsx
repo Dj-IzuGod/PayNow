@@ -9,8 +9,8 @@ export default function BottomNav() {
   return (
     <div className="fixed  bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 flex justify-around">
       <Link
-        key="/home"
-        to="/home"
+        key="/"
+        to="/"
         className={`flex flex-col items-center p-2 ${
           location.pathname === "/" ? "text-blue-500" : "text-gray-500"
         }`}

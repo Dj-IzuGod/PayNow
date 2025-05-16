@@ -1,12 +1,15 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useUser } from "@civic/auth-web3/react";
 import { useState } from "react";
+import { useBalance } from "../contexts/BalanceContext";
 
 const AddMoneyPage = () => {
   const { user } = useUser();
+  const [balance, setBalance] = useBalance();
   const [amount, setAmount] = useState("");
   const [selectedMethod, setSelectedMethod] = useState("bank");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [transactions, setTransactions] = useState([]);
 
   const paymentMethods = [
     { id: "bank", name: "Bank Transfer", icon: "🏦" },
@@ -14,6 +17,46 @@ const AddMoneyPage = () => {
     { id: "crypto", name: "Crypto Wallet", icon: "🪙" },
     { id: "mobile", name: "Mobile Money", icon: "📱" },
   ];
+
+  // Load fake balance from localStorage on component mount
+  useEffect(() => {
+    const savedBalance = localStorage.getItem("fakeBalance");
+    if (savedBalance) {
+      setBalance(parseFloat(savedBalance));
+    }
+  }, []);
+
+  const handleAddMoney = () => {
+    if (!amount || isNaN(amount) || amount <= 0) {
+      alert("Please enter a valid amount");
+      return;
+    }
+
+    setIsProcessing(true);
+
+    // Simulate API call with delay
+    setTimeout(() => {
+      const newBalance = balance + parseFloat(amount);
+      setBalance(newBalance);
+      localStorage.setItem("fakeBalance", newBalance.toString());
+
+      // Add transaction record
+      const newTransaction = {
+        id: Date.now(),
+        amount: parseFloat(amount),
+        date: new Date().toLocaleString(),
+        type: "deposit",
+        status: "completed",
+      };
+
+      setTransactions([newTransaction, ...transactions]);
+      setAmount("");
+      setIsProcessing(false);
+
+      // Show success message
+      alert(`Successfully added $${amount} to your balance!`);
+    }, 1500); // 1.5 second delay to simulate processing
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -28,10 +71,10 @@ const AddMoneyPage = () => {
       <h1 className="text-2xl font-bold mb-6">Add Money</h1>
 
       {/* Wallet Balance */}
-      <div className="mb-6 p-4 bg-blue-50 rounded-lg">
+      <div className="mb-6 p-4 bg-gray-200 rounded-lg">
         <p className="text-gray-600">Available Balance</p>
         <p className="text-3xl font-bold">
-          ₦{user?.balance?.toLocaleString() || "0.00"}
+          ₦{user?.balance?.toLocaleString() || balance.toFixed(2) || "0.00"}
         </p>
       </div>
 
@@ -57,6 +100,7 @@ const AddMoneyPage = () => {
               className="block w-full pl-8 pr-12 py-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
               placeholder="0.00"
               required
+              disabled={isProcessing}
             />
           </div>
         </div>
@@ -87,9 +131,10 @@ const AddMoneyPage = () => {
 
         {/* Submit Button */}
         <button
+          onClick={handleAddMoney}
           type="submit"
           disabled={isProcessing || !amount}
-          className="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full bg-black text-white py-3 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isProcessing ? (
             <span className="flex items-center justify-center">
@@ -121,21 +166,33 @@ const AddMoneyPage = () => {
         </button>
       </form>
 
-      {/* Recent Transactions */}
+      {/* Transaction History */}
       <div className="mt-8">
-        <h2 className="text-lg font-semibold mb-3">Recent Transactions</h2>
-        <div className="space-y-3">
-          {[].length > 0 ? (
-            // Map through transactions here
-            <p className="text-gray-500 text-center py-4">
-              No recent transactions
-            </p>
-          ) : (
-            <p className="text-gray-500 text-center py-4">
-              No recent transactions
-            </p>
-          )}
-        </div>
+        <h2 className="text-lg font-semibold mb-4">Recent Transactions</h2>
+        {transactions.length > 0 ? (
+          <div className="space-y-3">
+            {transactions.map((tx) => (
+              <div
+                key={tx.id}
+                className="flex justify-between items-center p-3 border-b border-gray-200"
+              >
+                <div>
+                  <p className="font-medium">Deposit</p>
+                  <p className="text-sm text-gray-500">{tx.date}</p>
+                </div>
+                <p
+                  className={`font-medium ${
+                    tx.type === "deposit" ? "text-green-600" : "text-red-600"
+                  }`}
+                >
+                  +${tx.amount.toFixed(2)}
+                </p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-gray-500 text-center py-4">No transactions yet</p>
+        )}
       </div>
     </div>
   );

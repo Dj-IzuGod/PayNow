@@ -12,7 +12,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { WagmiProvider } from "wagmi";
 import { config } from "./config";
 import { mainnet, sepolia } from "wagmi/chains";
-
+import { embeddedWallet } from "@civic/auth-web3/wagmi";
 // import { AuthStatusIndicator } from "./pages/Home";
 
 // Pages
@@ -151,6 +151,16 @@ const router = createBrowserRouter([
       <AuthChecker>
         <MainLayout>
           <CustomerCare />
+        </MainLayout>
+      </AuthChecker>
+    ),
+  },
+  {
+    path: "/add-money",
+    element: (
+      <AuthChecker>
+        <MainLayout>
+          <AddMoney />
         </MainLayout>
       </AuthChecker>
     ),

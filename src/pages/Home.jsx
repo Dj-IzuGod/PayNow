@@ -15,6 +15,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { useUser } from "@civic/auth-web3/react";
+import { useBalance } from "../contexts/BalanceContext";
 import { Plus, Wallet, Navigation, School, Tv, Signal } from "lucide-react";
 
 const Home = () => {
@@ -23,6 +24,7 @@ const Home = () => {
     hour: "2-digit",
     minute: "2-digit",
   });
+  const { balance, transactions } = useBalance();
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -39,7 +41,7 @@ const Home = () => {
       <div className="bg-white rounded-xl shadow-md p-6 mb-8">
         <h2 className="text-gray-500 text-sm mb-2">Available balance</h2>
         <p className="font-bold text-3xl md:text-4xl sm:text-sm lg:text-4xl">
-          ₦200,000.00
+          ₦{balance.toFixed(2)}
         </p>
       </div>
 
@@ -108,11 +110,33 @@ const Home = () => {
         </div>
       </div>
 
-      {/* Transaction History */}
-      <h2 className="text-xl font-semibold mb-4">Transaction History</h2>
-      <div className="bg-white rounded-xl shadow-md p-6">
-        {/* Placeholder for transaction list */}
-        <p className="text-gray-500 text-center py-8">No recent transactions</p>
+      {/* Recent Transactions */}
+      <div className="bg-white rounded-lg shadow-md p-6">
+        <h2 className="text-xl font-semibold mb-4">Recent Transactions</h2>
+        {transactions.length > 0 ? (
+          <div className="space-y-3">
+            {transactions.slice(0, 5).map((tx) => (
+              <div
+                key={tx.id}
+                className="flex justify-between items-center p-3 border-b border-gray-100"
+              >
+                <div>
+                  <p className="font-medium capitalize">{tx.type}</p>
+                  <p className="text-sm text-gray-500">{tx.date}</p>
+                </div>
+                <p
+                  className={`font-medium ${
+                    tx.type === "deposit" ? "text-green-600" : "text-red-600"
+                  }`}
+                >
+                  {tx.type === "deposit" ? "+" : "-"}${tx.amount.toFixed(2)}
+                </p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-gray-500 text-center py-4">No transactions yet</p>
+        )}
       </div>
     </div>
   );

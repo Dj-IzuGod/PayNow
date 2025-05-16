@@ -6,4 +6,11 @@ import tailwindcss from "@tailwindcss/vite";
 export default defineConfig({
   plugins: [react()],
   plugins: [tailwindcss()],
+
+  compilerOptions: {
+    baseUrl: "src",
+    paths: {
+      "@/*": ["./*"],
+    },
+  },
 });
